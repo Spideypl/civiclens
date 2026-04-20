@@ -48,4 +48,9 @@ describe('SearchBar', () => {
     await userEvent.click(screen.getByRole('button', { name: /search/i }))
     expect(mockNavigate).not.toHaveBeenCalled()
   })
+
+  it('pre-populates input with initialValue', () => {
+    renderSearchBar('H.R. 4521')
+    expect(screen.getByRole('textbox')).toHaveValue('H.R. 4521')
+  })
 })
