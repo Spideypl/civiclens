@@ -18,10 +18,10 @@ export default function Results() {
     setLoading(true)
     setError(null)
     fetch(`/api/search?q=${encodeURIComponent(q)}`)
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.json() })
       .then(data => { setBills(data.bills || []); setLoading(false) })
       .catch(() => { setError('Search failed. Try again.'); setLoading(false) })
-  }, [q])
+  }, [q, navigate])
 
   return (
     <main className="min-h-screen bg-slate-50">
