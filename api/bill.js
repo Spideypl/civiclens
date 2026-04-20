@@ -25,7 +25,9 @@ export default async function handler(req, res) {
   const recordedVotes = bill.recordedVotes || []
   if (recordedVotes.length > 0) {
     try {
-      const voteRes = await fetch(recordedVotes[0].url + '?format=json', {
+      const voteUrl = new URL(recordedVotes[0].url)
+      voteUrl.searchParams.set('format', 'json')
+      const voteRes = await fetch(voteUrl.toString(), {
         headers: { 'X-API-Key': process.env.CONGRESS_API_KEY }
       })
       if (voteRes.ok) {
@@ -36,8 +38,8 @@ export default async function handler(req, res) {
             date: vote.date,
             question: vote.question,
             result: vote.result,
-            totals: vote.totals || null,
-            partyTotals: vote.partyTotals || null
+            totals: vote.totals ?? null,
+            partyTotals: vote.partyTotals ?? null
           }
         }
       }

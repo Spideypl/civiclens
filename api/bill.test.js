@@ -33,6 +33,7 @@ describe('GET /api/bill', () => {
     const res = mockRes()
     await handler(req, res)
     expect(res.status).toHaveBeenCalledWith(400)
+    expect(res.json).toHaveBeenCalledWith({ error: 'congress, type, and number are required' })
   })
 
   it('returns formatted bill data', async () => {
