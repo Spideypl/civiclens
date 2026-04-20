@@ -1,8 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import fs from 'fs'
+import os from 'os'
+import path from 'path'
 import { readCache, writeCache } from './cache.js'
 
-const TEST_DIR = '/tmp/civiclens-test-cache'
+const TEST_DIR = path.join(os.tmpdir(), 'civiclens-test-cache')
 
 describe('cache', () => {
   beforeEach(() => {
