@@ -2,7 +2,7 @@ export default function VoteTracker({ votes }) {
   if (!votes?.totals) return null
 
   const { yea, nay, notVoting } = votes.totals
-  const total = yea + nay + (notVoting || 0)
+  const total = yea + nay
   const yeaPct = total > 0 ? (yea / total) * 100 : 50
 
   return (
