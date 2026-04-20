@@ -73,4 +73,13 @@ describe('GET /api/search', () => {
     expect(res.status).toHaveBeenCalledWith(429)
     expect(res.json).toHaveBeenCalledWith({ error: 'Too many requests — try again in a moment' })
   })
+
+  it('returns 502 if fetch throws a network error', async () => {
+    fetch.mockRejectedValue(new Error('network failure'))
+    const req = mockReq({ q: 'anything' })
+    const res = mockRes()
+    await handler(req, res)
+    expect(res.status).toHaveBeenCalledWith(502)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Congress.gov request failed' })
+  })
 })
