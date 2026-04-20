@@ -1,6 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { readCache, writeCache } from './cache.js'
 
+const client = new Anthropic()
+
 const SYSTEM_PROMPT = `You are a nonpartisan civic education tool. Given a congressional bill summary or description, generate a structured JSON analysis. Return ONLY valid JSON with no markdown fences or other text.
 
 The JSON must match this exact schema:
@@ -27,14 +29,16 @@ Perspectives are interpretive framings, not endorsements. Use neutral, informati
 
 async function fetchBillText(congress, type, number) {
   const headers = { 'X-API-Key': process.env.CONGRESS_API_KEY }
-  const summariesUrl = `https://api.congress.gov/v3/bill/${congress}/${type}/${number}/summaries?format=json`
-  const summariesRes = await fetch(summariesUrl, { headers })
+  const summariesRes = await fetch(
+    `https://api.congress.gov/v3/bill/${congress}/${type}/${number}/summaries?format=json`,
+    { headers }
+  )
   if (summariesRes.ok) {
     const data = await summariesRes.json()
     const text = data.summaries?.[0]?.text
     if (text) return text
   }
-  // Fallback: use bill title + latest action
+  // Fallback: use bill title + latest action if no CRS summary available
   const billRes = await fetch(
     `https://api.congress.gov/v3/bill/${congress}/${type}/${number}?format=json`,
     { headers }
@@ -45,14 +49,15 @@ async function fetchBillText(congress, type, number) {
 }
 
 async function callClaude(billText) {
-  const client = new Anthropic()
   const message = await client.messages.create({
     model: 'claude-sonnet-4-20250514',
-    max_tokens: 1500,
+    max_tokens: 2048,
     system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
     messages: [{ role: 'user', content: `Analyze this congressional bill:\n\n${billText}` }]
   })
-  return JSON.parse(message.content[0].text)
+  const block = message.content[0]
+  if (!block || block.type !== 'text') throw new Error('Unexpected Claude response format')
+  return block.text
 }
 
 export default async function handler(req, res) {
@@ -76,13 +81,19 @@ export default async function handler(req, res) {
   }
 
   let summary
-  try {
-    summary = await callClaude(billText)
-  } catch {
+  for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      summary = await callClaude(billText)
-    } catch {
-      return res.status(502).json({ error: 'Summary generation failed' })
+      const rawText = await callClaude(billText)
+      summary = JSON.parse(rawText)
+      break
+    } catch (err) {
+      if (attempt === 1) {
+        return res.status(502).json({ error: 'Summary generation failed' })
+      }
+      // Retry only on SyntaxError (malformed JSON from Claude); rethrow other errors on attempt 0
+      if (!(err instanceof SyntaxError)) {
+        return res.status(502).json({ error: 'Summary generation failed' })
+      }
     }
   }
 
