@@ -94,7 +94,7 @@ civiclens/
 ### `/api/summary` Internals
 1. Check cache at `{CACHE_DIR}/{id}.json`
 2. Cache hit → return immediately
-3. Cache miss → fetch bill text from Congress.gov → call Claude → parse JSON → write cache → return
+3. Cache miss → fetch bill summary from Congress.gov `/bill/{congress}/{type}/{number}/summaries` (CRS summary text; fall back to title + latest action if no summary available) → call Claude → parse JSON → write cache → return
 
 ---
 
@@ -110,6 +110,7 @@ civiclens/
   "overview": "string — 1-2 sentence plain-English summary",
   "breakdown": [
     { "label": "string", "text": "string" }
+    // 2-3 items, e.g. "What it does" / "Why now" / "What changes"
   ],
   "keyFacts": {
     "funding": "string",
@@ -131,7 +132,7 @@ civiclens/
 ## Caching
 
 - **Cache key:** bill ID string, e.g. `119-hr-4521`
-- **Cache location:** `process.env.CACHE_DIR` → defaults to `/tmp/civiclens-cache` (Vercel) or `./cache` (dev)
+- **Cache location:** `process.env.CACHE_DIR` → defaults to `/tmp/civiclens-cache` if `process.env.VERCEL` is set, otherwise `./cache`
 - **TTL:** None for MVP — bills don't change materially once summarized
 - **Invalidation:** Manual (delete the file)
 - **Cold-start behavior:** Vercel `/tmp` is ephemeral — a cold function instance re-calls Claude. Acceptable for MVP traffic.
