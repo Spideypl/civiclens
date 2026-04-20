@@ -6,7 +6,7 @@
 
 **Architecture:** Monorepo with React (Vite) frontend at root and Node.js serverless functions under `/api/`. All Congress.gov and Claude API calls are proxied through serverless functions. Generated summaries are cached as JSON files on disk.
 
-**Tech Stack:** React 18, React Router v6, Vite 5, Tailwind CSS v3, Vitest, @testing-library/react, @anthropic-ai/sdk, Vercel CLI
+**Tech Stack:** React 19, React Router v7 (library mode), Vite, Tailwind CSS v3, Vitest, @testing-library/react, @anthropic-ai/sdk, Vercel CLI
 
 ---
 
