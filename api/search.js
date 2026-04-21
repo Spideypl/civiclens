@@ -1,10 +1,11 @@
 export default async function handler(req, res) {
-  const { q } = req.query
+  const { q, congress } = req.query
   if (!q) return res.status(400).json({ error: 'q is required' })
 
   let response
   try {
-    const url = `https://api.congress.gov/v3/bill?query=${encodeURIComponent(q)}&format=json&limit=20`
+    const congressParam = congress ? `&congress=${encodeURIComponent(congress)}` : ''
+    const url = `https://api.congress.gov/v3/bill?query=${encodeURIComponent(q)}${congressParam}&format=json&limit=20`
     response = await fetch(url, {
       headers: { 'X-API-Key': process.env.CONGRESS_API_KEY }
     })

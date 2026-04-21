@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   }
 
   if (response.status === 429) return res.status(429).json({ error: 'Too many requests — try again in a moment' })
-  if (!response.ok) return res.status(404).json({ error: 'Bill not found' })
+  if (!response.ok) return res.status(404).json({ error: 'Bill not found — it may be reserved for the Speaker or not yet introduced in this Congress' })
 
   const data = await response.json()
   const bill = data.bill

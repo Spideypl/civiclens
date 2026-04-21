@@ -40,7 +40,7 @@ describe('SearchBar', () => {
     renderSearchBar()
     await userEvent.type(screen.getByRole('textbox'), 'semiconductor manufacturing')
     await userEvent.click(screen.getByRole('button', { name: /search/i }))
-    expect(mockNavigate).toHaveBeenCalledWith('/results?q=semiconductor+manufacturing')
+    expect(mockNavigate).toHaveBeenCalledWith('/results?q=semiconductor+manufacturing&congress=119')
   })
 
   it('does nothing on empty submit', async () => {

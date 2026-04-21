@@ -34,12 +34,13 @@ export default function Bill() {
     setLoadingSummary(true)
     setSummaryError(null)
     fetch(`/api/summary?id=${congress}-${type}-${number}`)
-      .then(r => r.json().then(data => ({ ok: r.ok, data })))
-      .then(({ ok, data }) => {
+      .then(r => r.json().then(data => ({ ok: r.ok, status: r.status, data })))
+      .then(({ ok, status, data }) => {
         if (ok) setSummary(data)
-        else setSummaryError('Summary unavailable')
+        else if (status === 404) setSummaryError(data.error || 'This bill was not found in Congress.gov.')
+        else setSummaryError('AI summary unavailable for this bill.')
       })
-      .catch(() => setSummaryError('Summary unavailable'))
+      .catch(() => setSummaryError('AI summary unavailable for this bill.'))
       .finally(() => setLoadingSummary(false))
   }, [congress, type, number])
 

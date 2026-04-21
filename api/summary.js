@@ -29,35 +29,50 @@ Perspectives are interpretive framings, not endorsements. Use neutral, informati
 
 async function fetchBillText(congress, type, number) {
   const headers = { 'X-API-Key': process.env.CONGRESS_API_KEY }
-  const summariesRes = await fetch(
-    `https://api.congress.gov/v3/bill/${congress}/${type}/${number}/summaries?format=json`,
-    { headers }
-  )
+
+  const [summariesRes, billRes] = await Promise.all([
+    fetch(`https://api.congress.gov/v3/bill/${congress}/${type}/${number}/summaries?format=json`, { headers }),
+    fetch(`https://api.congress.gov/v3/bill/${congress}/${type}/${number}?format=json`, { headers })
+  ])
+
+  if (!billRes.ok) {
+    if (billRes.status === 404) throw Object.assign(new Error('Bill not found'), { status: 404 })
+    throw new Error('Could not fetch bill data')
+  }
+
   if (summariesRes.ok) {
     const data = await summariesRes.json()
     const text = data.summaries?.[0]?.text
     if (text) return text
   }
-  // Fallback: use bill title + latest action if no CRS summary available
-  const billRes = await fetch(
-    `https://api.congress.gov/v3/bill/${congress}/${type}/${number}?format=json`,
-    { headers }
-  )
-  if (!billRes.ok) throw new Error('Could not fetch bill data')
+
+  // Fallback: build a richer description from available bill metadata
   const billData = await billRes.json()
-  return `${billData.bill.title}. Latest action: ${billData.bill.latestAction?.text || 'none'}`
+  const bill = billData.bill
+  if (!bill) throw new Error('Could not fetch bill data')
+
+  const parts = [`Title: ${bill.title}`]
+  if (bill.policyArea?.name) parts.push(`Policy Area: ${bill.policyArea.name}`)
+  const sponsor = bill.sponsors?.[0]
+  if (sponsor) parts.push(`Sponsor: ${sponsor.fullName} (${sponsor.party}-${sponsor.state})`)
+  if (bill.latestAction?.text) parts.push(`Latest Action: ${bill.latestAction.text}`)
+  const subjects = bill.subjects?.legislativeSubjects?.map(s => s.name).slice(0, 5)
+  if (subjects?.length) parts.push(`Legislative Subjects: ${subjects.join(', ')}`)
+
+  return parts.join('\n')
 }
 
 async function callClaude(billText) {
   const message = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-6',
     max_tokens: 2048,
     system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
     messages: [{ role: 'user', content: `Analyze this congressional bill:\n\n${billText}` }]
   })
   const block = message.content[0]
   if (!block || block.type !== 'text') throw new Error('Unexpected Claude response format')
-  return block.text
+  // Strip markdown fences in case Claude wraps output despite instructions
+  return block.text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
 }
 
 export default async function handler(req, res) {
@@ -76,7 +91,8 @@ export default async function handler(req, res) {
   let billText
   try {
     billText = await fetchBillText(congress, type, number)
-  } catch {
+  } catch (err) {
+    if (err.status === 404) return res.status(404).json({ error: 'Bill not found — it may be reserved or not yet introduced in this Congress' })
     return res.status(502).json({ error: 'Could not fetch bill data from Congress.gov' })
   }
 

@@ -7,6 +7,7 @@ const CURRENT_CONGRESS = 119
 export default function Results() {
   const [searchParams] = useSearchParams()
   const q = searchParams.get('q') || ''
+  const congress = Number(searchParams.get('congress')) || CURRENT_CONGRESS
   const navigate = useNavigate()
 
   const [bills, setBills] = useState([])
@@ -17,18 +18,18 @@ export default function Results() {
     if (!q) { navigate('/'); return }
     setLoading(true)
     setError(null)
-    fetch(`/api/search?q=${encodeURIComponent(q)}`)
+    fetch(`/api/search?q=${encodeURIComponent(q)}&congress=${congress}`)
       .then(r => { if (!r.ok) throw new Error(r.status); return r.json() })
       .then(data => { setBills(data.bills || []); setLoading(false) })
       .catch(() => { setError('Search failed. Try again.'); setLoading(false) })
-  }, [q, navigate])
+  }, [q, congress, navigate])
 
   return (
     <main className="min-h-screen bg-slate-50">
       <header className="bg-white border-b border-slate-200 px-4 py-4">
         <div className="max-w-3xl mx-auto flex items-center gap-4">
           <Link to="/" className="text-blue-700 font-bold text-lg shrink-0">CivicLens</Link>
-          <SearchBar initialValue={q} />
+          <SearchBar initialValue={q} defaultCongress={congress} />
         </div>
       </header>
 

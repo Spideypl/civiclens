@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import parseBillNumber from '../utils/parseBillNumber.js'
 
+const CONGRESSES = [119, 118, 117, 116, 115]
 const CURRENT_CONGRESS = 119
 
-export default function SearchBar({ initialValue = '' }) {
+export default function SearchBar({ initialValue = '', defaultCongress = CURRENT_CONGRESS }) {
   const [query, setQuery] = useState(initialValue)
+  const [congress, setCongress] = useState(defaultCongress)
   const navigate = useNavigate()
 
   function handleSubmit(e) {
@@ -14,14 +16,26 @@ export default function SearchBar({ initialValue = '' }) {
     if (!trimmed) return
     const bill = parseBillNumber(trimmed)
     if (bill) {
-      navigate(`/bill/${CURRENT_CONGRESS}/${bill.type}/${bill.number}`)
+      navigate(`/bill/${congress}/${bill.type}/${bill.number}`)
     } else {
-      navigate(`/results?q=${encodeURIComponent(trimmed).replace(/%20/g, '+')}`)
+      navigate(`/results?q=${encodeURIComponent(trimmed).replace(/%20/g, '+')}&congress=${congress}`)
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="flex gap-2 w-full max-w-xl">
+      <select
+        value={congress}
+        onChange={e => setCongress(Number(e.target.value))}
+        className="px-2 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 shrink-0"
+        aria-label="Congress session"
+      >
+        {CONGRESSES.map(c => (
+          <option key={c} value={c}>
+            {c}th{c === CURRENT_CONGRESS ? ' ★' : ''}
+          </option>
+        ))}
+      </select>
       <input
         type="text"
         value={query}
